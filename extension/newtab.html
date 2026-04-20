@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ReefCams</title>
+  <link rel="stylesheet" href="newtab.css" />
+</head>
+<body>
+
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div class="loading-inner">
+      <div class="loading-spinner"></div>
+      <p>Loading ReefCams…</p>
+    </div>
+  </div>
+
+  <!-- Error screen -->
+  <div id="error-screen" style="display:none">
+    <div class="error-inner">
+      <div style="font-size:36px">🪸</div>
+      <p class="error-msg"></p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </div>
+
+  <!-- Main cam viewer -->
+  <div id="cam-viewer">
+    <iframe
+      id="cam-iframe"
+      src=""
+      frameborder="0"
+      allow="autoplay; encrypted-media; fullscreen"
+      allowfullscreen
+    ></iframe>
+
+    <!-- Empty state -->
+    <div id="empty-state" style="display:none">
+      <div class="empty-inner">
+        <div style="font-size:48px">🪸</div>
+        <h2>Welcome to ReefCams</h2>
+        <p>Add a wildlife cam from the sidebar to get started.</p>
+      </div>
+    </div>
+
+    <div id="cam-name-badge"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <span class="sidebar-title">Your Cams</span>
+    </div>
+
+    <div id="cam-list"></div>
+
+    <button id="btn-add-more">
+      <span class="add-icon">+</span>
+      Add More
+    </button>
+  </aside>
+
+  <!-- Add Cams Modal -->
+  <div id="modal-overlay" class="hidden">
+    <div id="modal">
+      <div id="modal-header">
+        <h2>Add Wildlife Cams</h2>
+        <button id="modal-close">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="supabase.js"></script>
+  <script src="newtab.js"></script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+// newtab.js — main logic for the new tab page
+
+let currentUser = null;
+let userCams = [];
+let allCams = [];
+let activeCamId = null;
+
+// ---- Helpers ----
+
+// Extract YouTube video ID from any youtube URL format
+function extractVideoId(url) {
+  const patterns = [
+    /embed\/([^?&]+)/,
+    /v=([^&]+)/,
+    /youtu\.be\/([^?&]+)/,
+    /\/v\/([^?&]+)/
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+// ---- Boot ----
+
+async function boot() {
+  showLoading(true);
+
+  try {
+    let user = await supabase.getUser();
+    if (!user) user = await supabase.refreshSession();
+    if (!user) user = await supabase.signInAnonymously();
+    currentUser = user;
+  } catch (err) {
+    console.error('Auth error:', err);
+    showError('Auth failed: ' + (err?.message || JSON.stringify(err)));
+    return;
+  }
+
+  try {
+    await loadAllCams();
+    await loadUserCams();
+  } catch (err) {
+    console.error('Data load error:', err);
+    showError('Data load failed: ' + (err?.message || JSON.stringify(err)));
+    return;
+  }
+
+  showLoading(false);
+  renderSidebar();
+
+  const savedCamId = localStorage.getItem('rc_active_cam');
+  const target = userCams.find(c => c.cam_id === savedCamId) || userCams[0];
+  if (target) {
+    showCam(target.cam_id);
+  } else {
+    showEmptyState();
+  }
+
+  bindEvents();
+}
+
+// ---- Loading / Error / Empty ----
+
+function showLoading(on) {
+  document.getElementById('loading-screen').style.display = on ? 'flex' : 'none';
+}
+
+function showError(msg) {
+  showLoading(false);
+  const el = document.getElementById('error-screen');
+  el.style.display = 'flex';
+  el.querySelector('.error-msg').textContent = msg;
+}
+
+function showEmptyState() {
+  document.getElementById('cam-iframe').src = '';
+  document.getElementById('cam-name-badge').textContent = '';
+  document.getElementById('empty-state').style.display = 'flex';
+}
+
+function hideEmptyState() {
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+// ---- Data ----
+
+async function loadUserCams() {
+  const userId = supabase.getUserId();
+  const rows = await supabase.query('reefcams_user_cams', {
+    select: 'id,cam_id,display_order,reefcams_catalog(id,name,youtube_url,category,thumbnail_url)',
+    filter: { user_id: userId },
+    order: 'display_order.asc'
+  });
+  userCams = Array.isArray(rows) ? rows.map(r => ({ ...r, cam: r.reefcams_catalog })) : [];
+}
+
+async function loadAllCams() {
+  const rows = await supabase.query('reefcams_catalog', {
+    select: '*',
+    order: 'category.asc,name.asc'
+  });
+  allCams = Array.isArray(rows) ? rows : [];
+}
+
+// ---- Render Sidebar ----
+
+function renderSidebar() {
+  const list = document.getElementById('cam-list');
+  list.innerHTML = '';
+
+  if (userCams.length === 0) {
+    list.innerHTML = `<div class="sidebar-empty">No cams yet.<br/>Click <strong>+ Add More</strong> below.</div>`;
+    return;
+  }
+
+  userCams.forEach(entry => {
+    const cam = entry.cam;
+    if (!cam) return;
+
+    const card = document.createElement('div');
+    card.className = 'cam-card' + (entry.cam_id === activeCamId ? ' active' : '');
+    card.dataset.camId = entry.cam_id;
+
+    card.innerHTML = `
+      <img src="${cam.thumbnail_url || ''}" alt="${cam.name}" loading="lazy" />
+      <div class="cam-card-label">${cam.name}</div>
+      <button class="cam-remove-btn" title="Remove">✕</button>
+    `;
+
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('cam-remove-btn')) return;
+      showCam(entry.cam_id);
+    });
+
+    card.querySelector('.cam-remove-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeCam(entry.cam_id);
+    });
+
+    list.appendChild(card);
+  });
+}
+
+// ---- Show Cam ----
+
+function showCam(camId) {
+  activeCamId = camId;
+  localStorage.setItem('rc_active_cam', camId);
+  hideEmptyState();
+
+  const entry = userCams.find(c => c.cam_id === camId);
+  if (!entry || !entry.cam) return;
+
+  const videoId = extractVideoId(entry.cam.youtube_url);
+  if (!videoId) {
+    console.error('Could not extract video ID from:', entry.cam.youtube_url);
+    return;
+  }
+
+  if (!HOSTED_PLAYER_BASE_URL || HOSTED_PLAYER_BASE_URL.includes('YOUR_HOSTED_PLAYER_DOMAIN')) {
+    console.error('Hosted player URL is not configured.');
+    showError('Hosted player is not configured yet. Set HOSTED_PLAYER_BASE_URL in extension/supabase.js.');
+    return;
+  }
+
+  const playerUrl = `${HOSTED_PLAYER_BASE_URL.replace(/\/$/, '')}/player.html?v=${encodeURIComponent(videoId)}&title=${encodeURIComponent(entry.cam.name)}`;
+  document.getElementById('cam-iframe').src = playerUrl;
+  document.getElementById('cam-name-badge').textContent = entry.cam.name;
+
+  document.querySelectorAll('.cam-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.camId === camId);
+  });
+}
+
+// ---- Add / Remove Cam ----
+
+async function addCam(camId) {
+  const userId = supabase.getUserId();
+  await supabase.insert('reefcams_user_cams', {
+    user_id: userId,
+    cam_id: camId,
+    display_order: userCams.length
+  });
+  await loadUserCams();
+  renderSidebar();
+  renderModal();
+  if (userCams.length === 1) showCam(camId);
+}
+
+async function removeCam(camId) {
+  const userId = supabase.getUserId();
+  await supabase.delete('reefcams_user_cams', { user_id: userId, cam_id: camId });
+  await loadUserCams();
+  renderSidebar();
+
+  if (activeCamId === camId) {
+    if (userCams.length > 0) showCam(userCams[0].cam_id);
+    else showEmptyState();
+  }
+}
+
+// ---- Modal ----
+
+function renderModal() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = '';
+
+  const addedCamIds = new Set(userCams.map(c => c.cam_id));
+  const categories = {};
+  allCams.forEach(cam => {
+    if (!categories[cam.category]) categories[cam.category] = [];
+    categories[cam.category].push(cam);
+  });
+
+  if (Object.keys(categories).length === 0) {
+    body.innerHTML = `<p style="color:rgba(255,255,255,0.4);text-align:center;padding:40px 0">No cams available.</p>`;
+    return;
+  }
+
+  for (const [category, cams] of Object.entries(categories)) {
+    const section = document.createElement('div');
+    section.className = 'modal-category';
+    section.innerHTML = `<h3>${category}</h3>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'modal-cams-grid';
+
+    cams.forEach(cam => {
+      const isAdded = addedCamIds.has(cam.id);
+      const card = document.createElement('div');
+      card.className = 'modal-cam-card' + (isAdded ? ' already-added' : '');
+      card.innerHTML = `
+        <img src="${cam.thumbnail_url || ''}" alt="${cam.name}" loading="lazy" />
+        <div class="modal-cam-label">${cam.name}</div>
+      `;
+      if (!isAdded) card.addEventListener('click', () => addCam(cam.id));
+      grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    body.appendChild(section);
+  }
+}
+
+function openModal() {
+  renderModal();
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+// ---- Events ----
+
+function bindEvents() {
+  document.getElementById('btn-add-more').addEventListener('click', openModal);
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+}
+
+// ---- Run ----
+
+boot();
