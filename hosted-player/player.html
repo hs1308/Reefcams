@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ReefCams Player</title>
+  <link rel="preconnect" href="https://www.youtube.com" />
+  <link rel="preconnect" href="https://i.ytimg.com" />
+  <link rel="preconnect" href="https://img.youtube.com" />
   <style>
     * {
       box-sizing: border-box;
@@ -32,6 +35,53 @@
       border: 0;
       display: block;
       background: #000;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    #player.ready {
+      opacity: 1;
+    }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.42)),
+        center / cover no-repeat #000;
+      transition: opacity 0.25s ease;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #loading-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    #spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-top-color: rgba(255, 255, 255, 0.95);
+      animation: spin 0.85s linear infinite;
+    }
+
+    #loading-text {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.86);
+      letter-spacing: 0.02em;
     }
 
     #error {
@@ -62,10 +112,22 @@
       color: rgba(255, 255, 255, 0.72);
       font-size: 14px;
     }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 <body>
   <div id="app">
+    <div id="loading">
+      <div id="loading-inner">
+        <div id="spinner"></div>
+        <div id="loading-text">Loading live stream…</div>
+      </div>
+    </div>
     <iframe
       id="player"
       title="ReefCams Player"

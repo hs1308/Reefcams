@@ -4,7 +4,7 @@
 
 const SUPABASE_URL = 'https://auwbrydulogqlscfymbg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1d2JyeWR1bG9ncWxzY2Z5bWJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODYyMzgsImV4cCI6MjA4NTk2MjIzOH0.0iylWRsxOnu265xefq0Ly7_qIOmH50x1spUn6V5WunY';
-const HOSTED_PLAYER_BASE_URL = 'https://YOUR_HOSTED_PLAYER_DOMAIN';
+const HOSTED_PLAYER_BASE_URL = 'https://reefcams.vercel.app';
 
 class SupabaseClient {
   constructor(url, key) {

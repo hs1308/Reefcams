@@ -13,10 +13,11 @@
   "host_permissions": [
     "https://*.supabase.co/*",
     "https://www.youtube.com/*",
-    "https://www.youtube-nocookie.com/*"
+    "https://www.youtube-nocookie.com/*",
+    "https://reefcams.vercel.app/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube-nocookie.com https://www.youtube.com chrome-extension:;"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://reefcams.vercel.app chrome-extension:;"
   },
   "web_accessible_resources": [
     {

@@ -4,6 +4,12 @@ let currentUser = null;
 let userCams = [];
 let allCams = [];
 let activeCamId = null;
+let isUsingCachedState = false;
+
+const CACHE_KEYS = {
+  userCams: 'rc_cached_user_cams',
+  allCams: 'rc_cached_all_cams'
+};
 
 // ---- Helpers ----
 
@@ -22,6 +28,24 @@ function extractVideoId(url) {
   return null;
 }
 
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    console.warn('Failed to read cache', key, err);
+    return null;
+  }
+}
+
+function writeCache(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.warn('Failed to write cache', key, err);
+  }
+}
+
 // ---- Boot ----
 
 async function boot() {
@@ -38,27 +62,31 @@ async function boot() {
     return;
   }
 
+  hydrateFromCache();
+
   try {
-    await loadAllCams();
     await loadUserCams();
+    showLoading(false);
+    renderSidebar();
+
+    const savedCamId = localStorage.getItem('rc_active_cam');
+    const target = userCams.find(c => c.cam_id === savedCamId) || userCams[0];
+    if (target) {
+      showCam(target.cam_id);
+    } else {
+      showEmptyState();
+    }
+
+    bindEvents();
+
+    loadAllCams().catch(err => {
+      console.error('Catalog load error:', err);
+    });
   } catch (err) {
     console.error('Data load error:', err);
     showError('Data load failed: ' + (err?.message || JSON.stringify(err)));
     return;
   }
-
-  showLoading(false);
-  renderSidebar();
-
-  const savedCamId = localStorage.getItem('rc_active_cam');
-  const target = userCams.find(c => c.cam_id === savedCamId) || userCams[0];
-  if (target) {
-    showCam(target.cam_id);
-  } else {
-    showEmptyState();
-  }
-
-  bindEvents();
 }
 
 // ---- Loading / Error / Empty ----
@@ -84,6 +112,25 @@ function hideEmptyState() {
   document.getElementById('empty-state').style.display = 'none';
 }
 
+function hydrateFromCache() {
+  const cachedUserCams = readCache(CACHE_KEYS.userCams);
+  const cachedAllCams = readCache(CACHE_KEYS.allCams);
+
+  if (Array.isArray(cachedUserCams) && cachedUserCams.length > 0) {
+    userCams = cachedUserCams;
+    if (Array.isArray(cachedAllCams)) allCams = cachedAllCams;
+
+    isUsingCachedState = true;
+    showLoading(false);
+    renderSidebar();
+
+    const savedCamId = localStorage.getItem('rc_active_cam');
+    const target = userCams.find(c => c.cam_id === savedCamId) || userCams[0];
+    if (target) showCam(target.cam_id);
+    else showEmptyState();
+  }
+}
+
 // ---- Data ----
 
 async function loadUserCams() {
@@ -94,6 +141,7 @@ async function loadUserCams() {
     order: 'display_order.asc'
   });
   userCams = Array.isArray(rows) ? rows.map(r => ({ ...r, cam: r.reefcams_catalog })) : [];
+  writeCache(CACHE_KEYS.userCams, userCams);
 }
 
 async function loadAllCams() {
@@ -102,6 +150,7 @@ async function loadAllCams() {
     order: 'category.asc,name.asc'
   });
   allCams = Array.isArray(rows) ? rows : [];
+  writeCache(CACHE_KEYS.allCams, allCams);
 }
 
 // ---- Render Sidebar ----
@@ -165,8 +214,9 @@ function showCam(camId) {
     return;
   }
 
-  const playerUrl = `${HOSTED_PLAYER_BASE_URL.replace(/\/$/, '')}/player.html?v=${encodeURIComponent(videoId)}&title=${encodeURIComponent(entry.cam.name)}`;
-  document.getElementById('cam-iframe').src = playerUrl;
+  const playerUrl = `${HOSTED_PLAYER_BASE_URL.replace(/\/$/, '')}/player.html?v=${encodeURIComponent(videoId)}&title=${encodeURIComponent(entry.cam.name)}&thumb=${encodeURIComponent(entry.cam.thumbnail_url || '')}`;
+  const iframe = document.getElementById('cam-iframe');
+  if (iframe.src !== playerUrl) iframe.src = playerUrl;
   document.getElementById('cam-name-badge').textContent = entry.cam.name;
 
   document.querySelectorAll('.cam-card').forEach(c => {
@@ -256,6 +306,8 @@ function closeModal() {
 // ---- Events ----
 
 function bindEvents() {
+  if (bindEvents.didBind) return;
+  bindEvents.didBind = true;
   document.getElementById('btn-add-more').addEventListener('click', openModal);
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
