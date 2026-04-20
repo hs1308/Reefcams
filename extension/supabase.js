@@ -110,7 +110,11 @@ class SupabaseClient {
         Accept: 'application/json'
       }
     });
-    return res.json();
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.message || data?.error || `Query failed for ${table}`);
+    }
+    return data;
   }
 
   async insert(table, data) {
@@ -125,7 +129,11 @@ class SupabaseClient {
       },
       body: JSON.stringify(data)
     });
-    return res.json();
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body?.message || body?.error || `Insert failed for ${table}`);
+    }
+    return body;
   }
 
   async delete(table, filter) {
@@ -134,13 +142,23 @@ class SupabaseClient {
     for (const [k, v] of Object.entries(filter)) {
       params.set(k, `eq.${v}`);
     }
-    await fetch(`${this.url}/rest/v1/${table}?${params.toString()}`, {
+    const res = await fetch(`${this.url}/rest/v1/${table}?${params.toString()}`, {
       method: 'DELETE',
       headers: {
         apikey: this.key,
         Authorization: `Bearer ${token}`
       }
     });
+    if (!res.ok) {
+      let message = `Delete failed for ${table}`;
+      try {
+        const body = await res.json();
+        message = body?.message || body?.error || message;
+      } catch (err) {
+        // Ignore parse errors and surface the generic message.
+      }
+      throw new Error(message);
+    }
   }
 }
 

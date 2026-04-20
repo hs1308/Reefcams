@@ -26,6 +26,14 @@
 
   <!-- Main cam viewer -->
   <div id="cam-viewer">
+    <div id="viewer-loading" class="hidden">
+      <div class="viewer-loading-backdrop"></div>
+      <div class="viewer-loading-inner">
+        <div class="viewer-loading-spinner"></div>
+        <p>Loading live stream…</p>
+      </div>
+    </div>
+
     <iframe
       id="cam-iframe"
       src=""
