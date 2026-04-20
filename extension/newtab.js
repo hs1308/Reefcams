@@ -147,9 +147,18 @@ async function loadUserCams() {
 }
 
 async function loadUserCamsWithRecovery() {
-  await loadUserCams();
+  try {
+    await loadUserCams();
+    return;
+  } catch (err) {
+    const message = String(err?.message || '');
+    const shouldRecover =
+      message.toLowerCase().includes('jwt') ||
+      message.toLowerCase().includes('expired') ||
+      message.toLowerCase().includes('unauthorized');
 
-  if (Array.isArray(userCams) && !userCams.error) return;
+    if (!shouldRecover) throw err;
+  }
 
   const user = await supabase.refreshSession() || await supabase.signInAnonymously();
   currentUser = user;
