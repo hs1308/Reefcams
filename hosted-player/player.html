@@ -82,6 +82,22 @@
       font-size: 14px;
       color: rgba(255, 255, 255, 0.86);
       letter-spacing: 0.02em;
+      line-height: 1.5;
+      text-align: center;
+      max-width: 360px;
+    }
+
+    #loading-hint {
+      display: none;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.5;
+      text-align: center;
+      max-width: 360px;
+    }
+
+    #loading-hint.visible {
+      display: block;
     }
 
     #error {
@@ -126,6 +142,7 @@
       <div id="loading-inner">
         <div id="spinner"></div>
         <div id="loading-text">Loading live stream…</div>
+        <div id="loading-hint">Taking longer than expected, try clicking on another cam and switch back to this one.</div>
       </div>
     </div>
     <iframe
