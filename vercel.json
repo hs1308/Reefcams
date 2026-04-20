@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/hosted-player/player.html"
+    },
+    {
+      "source": "/player.html",
+      "destination": "/hosted-player/player.html"
+    }
+  ]
+}
