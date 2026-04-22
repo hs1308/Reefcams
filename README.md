@@ -61,7 +61,6 @@ ReefCams/
 └── extension/
     ├── manifest.json
     ├── supabase.js     ← Add your Supabase credentials here
-    ├── auth.html / auth.css / auth.js
     ├── newtab.html / newtab.css / newtab.js
     └── icons/
 ```
