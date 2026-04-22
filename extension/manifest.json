@@ -6,10 +6,6 @@
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
-  "permissions": [
-    "storage",
-    "identity"
-  ],
   "host_permissions": [
     "https://*.supabase.co/*",
     "https://www.youtube.com/*",
@@ -19,12 +15,6 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.youtube-nocookie.com https://www.youtube.com https://reefcams.vercel.app chrome-extension:;"
   },
-  "web_accessible_resources": [
-    {
-      "resources": ["player.html", "player.js"],
-      "matches": ["<all_urls>"]
-    }
-  ],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
