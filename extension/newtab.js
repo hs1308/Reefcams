@@ -69,27 +69,48 @@ async function boot() {
   hydrateFromCache();
 
   try {
-    await loadUserCamsWithRecovery();
-    await ensureDefaultCams();
-    showLoading(false);
-    renderSidebar();
+    await finishBoot();
+  } catch (err) {
+    const message = String(err?.message || '');
+    const shouldRetry =
+      message.toLowerCase().includes('jwt') ||
+      message.toLowerCase().includes('expired') ||
+      message.toLowerCase().includes('unauthorized');
 
-    const savedCamId = localStorage.getItem('rc_active_cam');
-    const target = userCams.find(c => c.cam_id === savedCamId) || userCams[0];
-    if (target) {
-      showCam(target.cam_id);
-    } else {
-      showEmptyState();
+    if (!shouldRetry) {
+      console.error('Data load error:', err);
+      showError('Data load failed: ' + (err?.message || JSON.stringify(err)));
+      return;
     }
 
-    loadAllCams().catch(err => {
-      console.error('Catalog load error:', err);
-    });
-  } catch (err) {
-    console.error('Data load error:', err);
-    showError('Data load failed: ' + (err?.message || JSON.stringify(err)));
-    return;
+    try {
+      supabase.clearSession();
+      currentUser = await supabase.signInAnonymously();
+      await finishBoot();
+    } catch (retryErr) {
+      console.error('Data load error after session reset:', retryErr);
+      showError('Data load failed: ' + (retryErr?.message || JSON.stringify(retryErr)));
+    }
   }
+}
+
+async function finishBoot() {
+  await loadUserCamsWithRecovery();
+  await ensureDefaultCams();
+  showLoading(false);
+  renderSidebar();
+
+  const savedCamId = localStorage.getItem('rc_active_cam');
+  const target = userCams.find(c => c.cam_id === savedCamId) || userCams[0];
+  if (target) {
+    showCam(target.cam_id);
+  } else {
+    showEmptyState();
+  }
+
+  loadAllCams().catch(err => {
+    console.error('Catalog load error:', err);
+  });
 }
 
 // ---- Loading / Error / Empty ----

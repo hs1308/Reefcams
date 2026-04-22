@@ -73,6 +73,14 @@ class SupabaseClient {
     return this.userId || localStorage.getItem('rc_user_id');
   }
 
+  clearSession() {
+    this.accessToken = null;
+    this.userId = null;
+    localStorage.removeItem('rc_token');
+    localStorage.removeItem('rc_refresh');
+    localStorage.removeItem('rc_user_id');
+  }
+
   async getUser() {
     const token = this.getToken();
     if (!token) return null;
