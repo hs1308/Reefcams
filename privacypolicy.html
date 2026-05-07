@@ -124,7 +124,7 @@
       <p class="lede">
         ReefCams is a Chrome extension that replaces your new tab page with wildlife livestreams and lets you manage your preferred cams from a sidebar.
       </p>
-      <p class="meta">Effective date: April 22, 2026</p>
+      <p class="meta">Effective date: May 8, 2026</p>
 
       <h2>Overview</h2>
       <p>
@@ -136,6 +136,7 @@
       <ul>
         <li>Anonymous session information needed to keep the extension working between new tabs.</li>
         <li>User preference data, such as selected cams, cam order, and the last active stream.</li>
+        <li>Anonymous usage analytics, such as which cams are viewed, time spent on each stream, and cams added or removed. This data is tied to a random anonymous ID and contains no personally identifiable information.</li>
         <li>Technical request data handled by third-party services required for the product to function, such as requests to Supabase, Vercel, and YouTube.</li>
       </ul>
 
@@ -161,6 +162,7 @@
         <li>Remember your selected cams and last viewed stream</li>
         <li>Maintain an anonymous session so the extension works consistently between new tabs</li>
         <li>Deliver and display livestream content in the new tab page</li>
+        <li>Understand how the extension is used in aggregate so we can improve it (via anonymous analytics)</li>
       </ul>
 
       <h2>Third-Party Services</h2>
@@ -169,6 +171,7 @@
         <li>Supabase for session handling and storage of cam selection data</li>
         <li>Vercel for hosting the player and related public pages</li>
         <li>YouTube for embedded livestream playback</li>
+        <li>PostHog for anonymous product analytics. PostHog receives only the anonymous usage events described above and does not receive any personally identifiable information.</li>
       </ul>
       <p>
         These services may receive technical request information such as IP address, browser metadata, and request headers as part of normal web delivery.
