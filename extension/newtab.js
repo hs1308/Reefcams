@@ -342,27 +342,56 @@ function hideViewerLoading() {
 // ---- Add / Remove Cam ----
 
 async function addCam(camId) {
-  const userId = supabase.getUserId();
-  await supabase.insert('reefcams_user_cams', {
-    user_id: userId,
-    cam_id: camId,
-    display_order: userCams.length
-  });
-  await loadUserCams();
+  const cam = allCams.find(c => c.id === camId);
+  if (!cam) return;
+
+  // Optimistic update — show instantly, sync in background
+  const prev = [...userCams];
+  userCams.push({ cam_id: camId, cam, display_order: userCams.length });
+  writeCache(CACHE_KEYS.userCams, userCams);
   renderSidebar();
   renderModal();
   if (userCams.length === 1) showCam(camId);
+
+  try {
+    const userId = supabase.getUserId();
+    await supabase.insert('reefcams_user_cams', {
+      user_id: userId,
+      cam_id: camId,
+      display_order: userCams.length - 1
+    });
+  } catch (err) {
+    console.error('Failed to add cam:', err);
+    userCams = prev;
+    writeCache(CACHE_KEYS.userCams, userCams);
+    renderSidebar();
+    renderModal();
+  }
 }
 
 async function removeCam(camId) {
-  const userId = supabase.getUserId();
-  await supabase.delete('reefcams_user_cams', { user_id: userId, cam_id: camId });
-  await loadUserCams();
-  renderSidebar();
+  const prev = [...userCams];
+  const wasActive = activeCamId === camId;
 
-  if (activeCamId === camId) {
+  // Optimistic update — remove instantly, sync in background
+  userCams = userCams.filter(c => c.cam_id !== camId);
+  writeCache(CACHE_KEYS.userCams, userCams);
+  renderSidebar();
+  renderModal();
+  if (wasActive) {
     if (userCams.length > 0) showCam(userCams[0].cam_id);
     else showEmptyState();
+  }
+
+  try {
+    const userId = supabase.getUserId();
+    await supabase.delete('reefcams_user_cams', { user_id: userId, cam_id: camId });
+  } catch (err) {
+    console.error('Failed to remove cam:', err);
+    userCams = prev;
+    writeCache(CACHE_KEYS.userCams, userCams);
+    renderSidebar();
+    renderModal();
   }
 }
 
@@ -454,8 +483,16 @@ function renderModal() {
       card.innerHTML = `
         <img src="${cam.thumbnail_url || ''}" alt="${cam.name}" loading="lazy" />
         <div class="modal-cam-label">${cam.name}</div>
+        ${isAdded ? '<button class="modal-remove-btn" title="Remove">✕</button>' : ''}
       `;
-      if (!isAdded) card.addEventListener('click', () => addCam(cam.id));
+      if (!isAdded) {
+        card.addEventListener('click', () => addCam(cam.id));
+      } else {
+        card.querySelector('.modal-remove-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeCam(cam.id);
+        });
+      }
       grid.appendChild(card);
     });
 

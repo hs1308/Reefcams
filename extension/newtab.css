@@ -579,7 +579,6 @@ html, body {
 .modal-cam-card.already-added {
   border-color: var(--accent);
   opacity: 0.55;
-  pointer-events: none;
 }
 
 .modal-cam-card.already-added::after {
@@ -597,6 +596,36 @@ html, body {
 
 .modal-cam-card:not(.already-added):hover {
   border-color: rgba(255,255,255,0.3);
+}
+
+.modal-remove-btn {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 22px;
+  height: 22px;
+  background: rgba(0,0,0,0.7);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.modal-cam-card.already-added:hover {
+  opacity: 0.85;
+}
+
+.modal-cam-card.already-added:hover .modal-remove-btn {
+  display: flex;
+}
+
+.modal-remove-btn:hover {
+  background: #ef4444;
 }
 
 /* ---- Utility ---- */
