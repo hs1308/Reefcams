@@ -1,7 +1,7 @@
 -- Stream load telemetry — logged by hosted-player/player.js for all users.
 -- No auth required to insert; only readable via service role (Supabase dashboard).
 
-create table if not exists stream_load_events (
+create table if not exists reefcams_stream_load_events (
   id          uuid primary key default gen_random_uuid(),
   video_id    text,
   cam_title   text,
@@ -12,9 +12,9 @@ create table if not exists stream_load_events (
   created_at  timestamptz default now()
 );
 
-alter table stream_load_events enable row level security;
+alter table reefcams_stream_load_events enable row level security;
 
 create policy "Anyone can log stream events"
-  on stream_load_events for insert
+  on reefcams_stream_load_events for insert
   to anon, authenticated
   with check (true);

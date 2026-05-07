@@ -30,7 +30,7 @@ function log(...args) {
 
 function logToSupabase(event, source, elapsedMs) {
   try {
-    fetch(`${SUPABASE_URL}/rest/v1/stream_load_events`, {
+    fetch(`${SUPABASE_URL}/rest/v1/reefcams_stream_load_events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
