@@ -144,6 +144,32 @@ class SupabaseClient {
     return body;
   }
 
+  async update(table, data, filter) {
+    const token = this.getToken();
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filter)) {
+      params.set(k, `eq.${v}`);
+    }
+    const res = await fetch(`${this.url}/rest/v1/${table}?${params.toString()}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: this.key,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      let message = `Update failed for ${table}`;
+      try {
+        const body = await res.json();
+        message = body?.message || body?.error || message;
+      } catch (err) {}
+      throw new Error(message);
+    }
+  }
+
   async delete(table, filter) {
     const token = this.getToken();
     const params = new URLSearchParams();

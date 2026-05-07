@@ -234,21 +234,55 @@ function renderSidebar() {
     const card = document.createElement('div');
     card.className = 'cam-card' + (entry.cam_id === activeCamId ? ' active' : '');
     card.dataset.camId = entry.cam_id;
+    card.setAttribute('draggable', 'true');
 
     card.innerHTML = `
-      <img src="${cam.thumbnail_url || ''}" alt="${cam.name}" loading="lazy" />
+      <img src="${cam.thumbnail_url || ''}" alt="${cam.name}" loading="lazy" draggable="false" />
       <div class="cam-card-label">${cam.name}</div>
+      <div class="cam-drag-handle" title="Drag to reorder">⠿</div>
       <button class="cam-remove-btn" title="Remove">✕</button>
     `;
 
     card.addEventListener('click', (e) => {
       if (e.target.classList.contains('cam-remove-btn')) return;
+      if (e.target.classList.contains('cam-drag-handle')) return;
       showCam(entry.cam_id);
     });
 
     card.querySelector('.cam-remove-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       removeCam(entry.cam_id);
+    });
+
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', entry.cam_id);
+      setTimeout(() => card.classList.add('dragging'), 0);
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      document.querySelectorAll('.cam-card').forEach(c => c.classList.remove('drag-over'));
+    });
+
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.cam-card').forEach(c => c.classList.remove('drag-over'));
+      card.classList.add('drag-over');
+    });
+
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const srcCamId = e.dataTransfer.getData('text/plain');
+      if (srcCamId === entry.cam_id) return;
+      const srcIndex = userCams.findIndex(c => c.cam_id === srcCamId);
+      const destIndex = userCams.findIndex(c => c.cam_id === entry.cam_id);
+      if (srcIndex === -1 || destIndex === -1) return;
+      userCams.splice(destIndex, 0, userCams.splice(srcIndex, 1)[0]);
+      renderSidebar();
+      saveUserCamOrder();
     });
 
     list.appendChild(card);
@@ -326,6 +360,16 @@ async function removeCam(camId) {
     if (userCams.length > 0) showCam(userCams[0].cam_id);
     else showEmptyState();
   }
+}
+
+async function saveUserCamOrder() {
+  writeCache(CACHE_KEYS.userCams, userCams);
+  const userId = supabase.getUserId();
+  await Promise.all(
+    userCams.map((entry, index) =>
+      supabase.update('reefcams_user_cams', { display_order: index }, { user_id: userId, cam_id: entry.cam_id })
+    )
+  );
 }
 
 // ---- Modal ----
