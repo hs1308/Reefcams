@@ -4,6 +4,7 @@ let currentUser = null;
 let userCams = [];
 let allCams = [];
 let activeCamId = null;
+let activeModalFilter = 'all';
 
 const CACHE_KEYS = {
   userCams: 'rc_cached_user_cams',
@@ -329,21 +330,44 @@ async function removeCam(camId) {
 
 // ---- Modal ----
 
+const MODAL_FILTERS = ['All', 'Ocean', 'Birds', 'Pets', 'Animals'];
+
+function renderModalFilters() {
+  const bar = document.getElementById('modal-filters');
+  bar.innerHTML = '';
+  MODAL_FILTERS.forEach(f => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (activeModalFilter === f.toLowerCase() ? ' active' : '');
+    btn.textContent = f;
+    btn.addEventListener('click', () => {
+      activeModalFilter = f.toLowerCase();
+      renderModal();
+    });
+    bar.appendChild(btn);
+  });
+}
+
 function renderModal() {
+  renderModalFilters();
+
   const body = document.getElementById('modal-body');
   body.innerHTML = '';
 
   const addedCamIds = new Set(userCams.map(c => c.cam_id));
-  const categories = {};
-  allCams.forEach(cam => {
-    if (!categories[cam.category]) categories[cam.category] = [];
-    categories[cam.category].push(cam);
-  });
+  const filtered = activeModalFilter === 'all'
+    ? allCams
+    : allCams.filter(c => c.category.toLowerCase() === activeModalFilter);
 
-  if (Object.keys(categories).length === 0) {
+  if (filtered.length === 0) {
     body.innerHTML = `<p style="color:rgba(255,255,255,0.4);text-align:center;padding:40px 0">No cams available.</p>`;
     return;
   }
+
+  const categories = {};
+  filtered.forEach(cam => {
+    if (!categories[cam.category]) categories[cam.category] = [];
+    categories[cam.category].push(cam);
+  });
 
   for (const [category, cams] of Object.entries(categories)) {
     const section = document.createElement('div');
@@ -371,6 +395,7 @@ function renderModal() {
 }
 
 function openModal() {
+  activeModalFilter = 'all';
   renderModal();
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
