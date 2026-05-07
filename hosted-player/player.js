@@ -132,8 +132,8 @@ if (!videoId) {
   player.src = embedUrl;
   loadStart = Date.now();
 
-  // If postMessage hasn't confirmed playback in 2.5s, retry once silently.
+  // If postMessage hasn't confirmed playback in 3.5s, retry once silently.
   // This handles truly stuck streams without penalising normal ones.
-  revealTimer = setTimeout(doRetry, 2500);
+  revealTimer = setTimeout(doRetry, 3500);
   hintTimer = setTimeout(() => loadingHint.classList.add('visible'), 6000);
 }
