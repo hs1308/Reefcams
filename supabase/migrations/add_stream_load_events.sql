@@ -5,8 +5,9 @@ create table if not exists reefcams_stream_load_events (
   id          uuid primary key default gen_random_uuid(),
   video_id    text,
   cam_title   text,
+  user_id     text,
   event       text not null,   -- 'revealed' | 'retried'
-  source      text,            -- 'yt_state' | 'yt_info' | 'force_reveal' | 'force_reveal_retry' | 'yt_state_unstarted'
+  source      text,            -- 'yt_state' | 'yt_info' | 'force_reveal' | 'force_reveal_retry' | 'no_playback_state'
   elapsed_ms  int,             -- ms from load start to this event
   retried     boolean default false,
   created_at  timestamptz default now()

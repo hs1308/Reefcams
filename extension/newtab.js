@@ -276,7 +276,7 @@ function showCam(camId) {
     return;
   }
 
-  const playerUrl = `${HOSTED_PLAYER_BASE_URL.replace(/\/$/, '')}/player.html?v=${encodeURIComponent(videoId)}&title=${encodeURIComponent(entry.cam.name)}&thumb=${encodeURIComponent(entry.cam.thumbnail_url || '')}`;
+  const playerUrl = `${HOSTED_PLAYER_BASE_URL.replace(/\/$/, '')}/player.html?v=${encodeURIComponent(videoId)}&title=${encodeURIComponent(entry.cam.name)}&thumb=${encodeURIComponent(entry.cam.thumbnail_url || '')}&uid=${encodeURIComponent(supabase.getUserId() || '')}`;
   const iframe = document.getElementById('cam-iframe');
   showViewerLoading(entry.cam.thumbnail_url);
   if (iframe.src !== playerUrl) iframe.src = playerUrl;

@@ -5,6 +5,7 @@ const params = new URLSearchParams(window.location.search);
 const videoId = params.get('v');
 const title = params.get('title') || 'ReefCams Player';
 const thumbnail = params.get('thumb');
+const userId = params.get('uid') || null;
 const player = document.getElementById('player');
 const loading = document.getElementById('loading');
 const loadingHint = document.getElementById('loading-hint');
@@ -37,7 +38,7 @@ function logToSupabase(event, source, elapsedMs) {
         'apikey': SUPABASE_ANON_KEY,
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify([{ video_id: videoId, cam_title: title, event, source, elapsed_ms: elapsedMs, retried }]),
+      body: JSON.stringify([{ video_id: videoId, cam_title: title, user_id: userId, event, source, elapsed_ms: elapsedMs, retried }]),
       keepalive: true
     }).catch(() => {});
   } catch (e) {}
@@ -66,8 +67,22 @@ function revealPlayer(source) {
   loading.classList.add('hidden');
 }
 
-// YouTube API handshake: on iframe load, tell YouTube we're listening.
-// YouTube responds with onReady, then we subscribe to state changes.
+function doRetry() {
+  retried = true;
+  clearTimeout(hintTimer);
+  log('postMessage never confirmed playback — retrying at', Date.now() - loadStart, 'ms');
+  logToSupabase('retried', 'no_playback_state', Date.now() - loadStart);
+  player.src = '';
+  loadStart = Date.now();
+  setTimeout(() => {
+    player.src = embedUrl;
+    // If retry also fails to confirm playback in 2.5s, just reveal whatever is there
+    revealTimer = setTimeout(() => revealPlayer('force_reveal_retry'), 2500);
+    hintTimer = setTimeout(() => loadingHint.classList.add('visible'), 3500);
+  }, 150);
+}
+
+// YouTube API handshake: tell YouTube we're listening so it sends state events.
 function initYouTubeApi() {
   try {
     player.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), 'https://www.youtube.com');
@@ -99,27 +114,11 @@ function onYouTubeMessage(event) {
   if (state === null) return;
   log('player state', state, 'at', Date.now() - loadStart, 'ms');
 
+  // state -1 (unstarted) is YouTube's normal initial state — don't treat it as stuck.
+  // Only reveal on 1 (playing) or 3 (buffering); let the 2.5s timer handle truly stuck streams.
   if (state === 1 || state === 3) {
     revealPlayer(data.event === 'onStateChange' ? 'yt_state' : 'yt_info');
-  } else if (state === -1 && !retried && !revealed) {
-    doRetry();
   }
-}
-
-function doRetry() {
-  retried = true;
-  clearTimeout(revealTimer);
-  clearTimeout(hintTimer);
-  loadingHint.classList.remove('visible');
-  log('stream unstarted — retrying at', Date.now() - loadStart, 'ms');
-  logToSupabase('retried', 'yt_state_unstarted', Date.now() - loadStart);
-  player.src = '';
-  loadStart = Date.now();
-  setTimeout(() => {
-    player.src = embedUrl;
-    revealTimer = setTimeout(() => revealPlayer('force_reveal_retry'), 2500);
-    hintTimer = setTimeout(() => loadingHint.classList.add('visible'), 6000);
-  }, 150);
 }
 
 if (!videoId) {
@@ -133,7 +132,8 @@ if (!videoId) {
   player.src = embedUrl;
   loadStart = Date.now();
 
-  // Same 2.5s force-reveal as the original — no added delay if postMessage doesn't fire
-  revealTimer = setTimeout(() => revealPlayer('force_reveal'), 2500);
+  // If postMessage hasn't confirmed playback in 2.5s, retry once silently.
+  // This handles truly stuck streams without penalising normal ones.
+  revealTimer = setTimeout(doRetry, 2500);
   hintTimer = setTimeout(() => loadingHint.classList.add('visible'), 6000);
 }
