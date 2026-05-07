@@ -5,6 +5,7 @@ let userCams = [];
 let allCams = [];
 let activeCamId = null;
 let activeModalFilter = 'all';
+let activeNotification = null;
 
 const CACHE_KEYS = {
   userCams: 'rc_cached_user_cams',
@@ -111,6 +112,9 @@ async function finishBoot() {
 
   loadAllCams().catch(err => {
     console.error('Catalog load error:', err);
+  });
+  loadNotification().catch(err => {
+    console.error('Notification load error:', err);
   });
 }
 
@@ -362,6 +366,28 @@ async function removeCam(camId) {
   }
 }
 
+async function loadNotification() {
+  const rows = await supabase.query('reefcams_notifications', {
+    select: 'id,message',
+    filter: { is_active: true }
+  });
+  const notif = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  if (!notif) return;
+  if (localStorage.getItem(`rc_dismissed_notif_${notif.id}`)) return;
+  activeNotification = notif;
+  document.getElementById('notification-pill').textContent = notif.message;
+  document.getElementById('notification-pill').classList.remove('hidden');
+  document.getElementById('btn-add-more').classList.add('has-notification');
+}
+
+function dismissNotification() {
+  if (!activeNotification) return;
+  localStorage.setItem(`rc_dismissed_notif_${activeNotification.id}`, '1');
+  document.getElementById('notification-pill').classList.add('hidden');
+  document.getElementById('btn-add-more').classList.remove('has-notification');
+  activeNotification = null;
+}
+
 async function saveUserCamOrder() {
   writeCache(CACHE_KEYS.userCams, userCams);
   const userId = supabase.getUserId();
@@ -439,6 +465,7 @@ function renderModal() {
 }
 
 function openModal() {
+  dismissNotification();
   activeModalFilter = 'all';
   renderModal();
   document.getElementById('modal-overlay').classList.remove('hidden');

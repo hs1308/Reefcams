@@ -361,6 +361,21 @@ html, body {
   background: #ef4444;
 }
 
+/* ---- Notification Pill ---- */
+
+#notification-pill {
+  margin: 0 4px;
+  padding: 8px 12px;
+  background: rgba(45, 212, 191, 0.1);
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--accent);
+  line-height: 1.5;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 /* ---- Add More Button ---- */
 
 #btn-add-more {
@@ -388,6 +403,23 @@ html, body {
 #btn-add-more:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+#btn-add-more.has-notification::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: notif-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes notif-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
 }
 
 .add-icon {
