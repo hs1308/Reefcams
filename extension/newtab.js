@@ -189,7 +189,7 @@ async function loadUserCamsWithRecovery() {
 async function loadAllCams() {
   const rows = await supabase.query('reefcams_catalog', {
     select: '*',
-    order: 'category.asc,name.asc'
+    order: 'sort_order.asc,name.asc'
   });
   allCams = Array.isArray(rows) ? rows : [];
   writeCache(CACHE_KEYS.allCams, allCams);
