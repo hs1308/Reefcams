@@ -1,5 +1,17 @@
 # ReefCams Architecture
 
+## Core Principle: Stream Load Time is Everything
+
+**Stream load time is the single most important metric for this product.** Every technical decision must be evaluated against its impact on how fast the stream appears after a user opens a new tab or switches cams.
+
+Rules that follow from this:
+- Nothing on the critical path (auth → cam list → player iframe → YouTube) may be made synchronous or blocking without strong justification
+- All analytics, telemetry, and non-essential network calls must be fire-and-forget — never awaited before rendering
+- UI interactions (add cam, remove cam, reorder) must use optimistic updates so the interface never waits on Supabase
+- Any new feature that touches the boot sequence or the iframe loading chain must be benchmarked against `reefcams_stream_load_events` before shipping
+
+---
+
 ## Overview
 
 ReefCams is a Chrome extension that replaces the new tab page with a live wildlife camera viewer. It is built across three components that are deployed and versioned independently.
@@ -38,6 +50,7 @@ YouTube Live Stream Embed
 - Stores the global cam catalog (`reefcams_catalog`)
 - Stores each user's selected cams (`reefcams_user_cams`)
 - Stores stream load telemetry (`reefcams_stream_load_events`)
+- Stores notification banners (`reefcams_notifications`)
 - Anonymous auth: users are signed in automatically with no account required
 - localStorage cache in the extension means Supabase is not on the critical path for returning users
 
@@ -82,6 +95,9 @@ State `-1` (unstarted) is YouTube's normal initial state and is intentionally ig
 
 ### Retry only once
 After one retry, if YouTube still does not confirm playback within a further 2.5s, the overlay is removed regardless and whatever YouTube is showing (its own loading/error UI) becomes visible. This prevents the user from seeing a permanent loading screen.
+
+### Optimistic UI updates
+Add cam, remove cam, and reorder operations update local state and re-render immediately, then sync to Supabase in the background. On error they revert. This means the sidebar and modal never feel slow regardless of network conditions.
 
 ---
 
